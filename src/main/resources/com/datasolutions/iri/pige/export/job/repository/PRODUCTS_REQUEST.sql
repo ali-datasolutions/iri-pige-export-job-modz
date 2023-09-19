@@ -1,0 +1,15 @@
+SELECT DISTINCT
+    pro.PRO_OID AS id,
+    PRO_DESIGNATION AS label,
+    CONCAT(UCO_COUNT * UCO_QUANTITY, " ", UCO_PACKAGING_UNIT) AS quantity,
+    CASE WHEN PRO_REGLE_RESULTAT IS NULL THEN '0%' ELSE CONCAT(ROUND(PRO_REGLE_RESULTAT, 2) * 100, "%") END AS gratuity,
+    sin.SIN_OID AS sinOid,
+    MAR_NOM AS brandName
+FROM pro_produit pro
+    INNER JOIN sin_sous_segment_invariant sin ON (pro.SIN_OID = sin.SIN_OID)
+    INNER JOIN mar_marque mar ON (pro.MAR_OID = mar.MAR_OID)
+    INNER JOIN uco_unite_conditionnement uco ON (pro.UCO_OID = uco.UCO_OID)
+WHERE MAR_NOM != 'BUNDLE'
+AND SIN_MATCHING_EAN = 1
+AND CONCAT(UCO_COUNT * UCO_QUANTITY, " ", UCO_PACKAGING_UNIT) IS NOT NULL
+ORDER BY PRO_DESIGNATION

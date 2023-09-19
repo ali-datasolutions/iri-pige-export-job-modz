@@ -1,0 +1,64 @@
+version: 2
+jobs:
+  test:
+    docker:
+      - image: circleci/openjdk@sha256:4c8e901f3016cfb1c08b83d4d94f4a5f960e467f4ef73a798bd66e78be280bf1
+    working_directory: ~/repo
+    environment:
+      MAVEN_OPTS: -Xmx256m
+      GOOGLE_APPLICATION_CREDENTIALS: "/home/circleci/GCLOUD_CI_SA_KEY.key"
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "pom.xml" }}
+          - v1-dependencies-
+      - run:
+          name: Install Gcloud "Continuous Integration" service account key
+          command: |
+            echo $GCLOUD_CI_SA_KEY > $GOOGLE_APPLICATION_CREDENTIALS
+      - run:
+          name: Execute Maven "test" phase
+          command: |
+            mvn test
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: v1-dependencies-{{ checksum "pom.xml" }}
+
+  build-docker:
+    docker:
+      - image: circleci/openjdk@sha256:4c8e901f3016cfb1c08b83d4d94f4a5f960e467f4ef73a798bd66e78be280bf1
+    working_directory: ~/repo
+    environment:
+      MAVEN_OPTS: -Xmx256m
+      GOOGLE_APPLICATION_CREDENTIALS: "/home/circleci/GCLOUD_CI_SA_KEY.key"
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "pom.xml" }}
+          - v1-dependencies-
+      - run:
+          name: Install Gcloud "Continuous Integration" service account key
+          command: |
+            echo $GCLOUD_CI_SA_KEY > $GOOGLE_APPLICATION_CREDENTIALS
+      - run: mvn install -DskipTests
+      - run:
+          name: Create & Push Docker image
+          command: |
+            mvn compile jib:build \
+                -Djib.to.image=eu.gcr.io/data-solutions-cloud/iri-pige-export-job-modz:$CIRCLE_SHA1 \
+                -Djib.to.auth.username=_json_key \
+                -Djib.to.auth.password="$GCLOUD_CI_SA_KEY"
+
+workflows:
+  version: 2
+  test-and-deploy:
+    jobs:
+      - test:
+          context: continuous-integration
+      - build-docker:
+          context: continuous-integration
+          requires:
+            - test
