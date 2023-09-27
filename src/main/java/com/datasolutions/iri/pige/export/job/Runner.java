@@ -119,10 +119,6 @@ public class Runner implements CommandLineRunner {
         Set<LeafletId> leafletIds = dataRepository.getLeafletIds(startDate, endDate, supportTypeIds);
         log.info("Found {} leaflet(s) that opn date started after {} and have been modified after {}!", leafletIds.size(), startDate, endDate);
 
-        if (leafletIds.size() == 0) {
-            return;
-        }
-
         UUID processUuid = UUID.randomUUID();
         Map<Long, LeafletState> states = Maps.newHashMap();
         Boolean incremental = properties.getIncremental();
